@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111111">
+  <meta name="description" content="Tráfico pago desde cero. Una presentación de Fórmula Jumpers para preparar, lanzar y revisar tu primera campaña hacia WhatsApp o Instagram.">
+  <title>Módulo Ads · Fórmula Jumpers</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23111'/%3E%3Ctext x='32' y='45' fill='white' font-size='40' font-family='Arial' font-weight='900' text-anchor='middle'%3EJ%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+  <script src="slides.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="wordmark" href="#1" aria-label="Fórmula Jumpers, primera diapositiva"><span>FÓRMULA</span><strong>JUMPERS</strong></a>
+    <div class="deck-label">FORMACIÓN EN NEGOCIOS <span>/</span> MÓDULO ADS</div>
+    <button class="text-btn" id="index-button" aria-haspopup="dialog">Índice <span class="keyhint">I</span></button>
+  </header>
+  <main id="presentation" aria-label="Presentación del módulo de tráfico pago">
+    <div class="stage" id="stage" tabindex="-1"></div>
+  </main>
+  <footer class="controls">
+    <div class="utilities">
+      <button id="notes-button" class="text-btn" aria-haspopup="dialog">Guía de clase <span class="keyhint">N</span></button>
+      <button id="fullscreen-button" class="text-btn" aria-label="Activar pantalla completa">Pantalla completa <span class="keyhint">F</span></button>
+    </div>
+    <div class="navigation">
+      <button id="prev" class="arrow" aria-label="Diapositiva anterior">←</button>
+      <button id="counter" class="counter" aria-label="Abrir índice"></button>
+      <button id="next" class="arrow" aria-label="Diapositiva siguiente">→</button>
+    </div>
+  </footer>
+  <div class="progress-track" aria-hidden="true"><div id="progress"></div></div>
+  <div id="announcement" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+  <dialog id="index-dialog" aria-labelledby="index-title">
+    <div class="dialog-top"><p class="eyebrow">FÓRMULA JUMPERS</p><button class="close" data-close aria-label="Cerrar índice">×</button></div>
+    <h2 id="index-title">El recorrido completo</h2>
+    <p class="dialog-intro">Elige una diapositiva para continuar.</p>
+    <nav id="slide-index" aria-label="Índice de diapositivas"></nav>
+  </dialog>
+  <dialog id="notes-dialog" aria-labelledby="notes-title">
+    <div class="dialog-top"><p class="eyebrow" id="notes-number"></p><button class="close" data-close aria-label="Cerrar guía">×</button></div>
+    <h2 id="notes-title"></h2>
+    <div id="notes-content"></div>
+  </dialog>
+  <noscript>Activa JavaScript para navegar por la presentación.</noscript>
+</body>
+</html>
