@@ -1,14 +1,16 @@
 # Estudio de Contenido Jumpers
 
-Quiz de negocio, cliente y voz; brief por formato/objetivo/plataforma; editor; biblioteca; investigación con fuentes y feedback.
+Quiz de negocio, cliente y voz; encargo por formato/objetivo/plataforma; transferencia a ChatGPT; importación de ideas; editor, biblioteca, fuentes y aprendizajes.
 
 ## Estado
 
-La interfaz, el almacenamiento y la integración de API están implementados. La clave de OpenAI y la prueba con un proveedor real están pendientes. Sin clave, se pueden guardar el perfil y borradores, editar, exportar y copiar el brief. La aplicación indica claramente el estado pendiente.
+El estudio utiliza un flujo manual con ChatGPT: guardar el quiz → preparar y copiar el encargo → enviarlo en ChatGPT → pegar el bloque de respuesta → importar y editar. También permite guardar borradores propios, favoritos, resultados y exportar texto.
 
-El radar investiga bajo demanda, conserva fuentes y fecha de consulta, y rechaza investigaciones sin fuentes. No hay una tarea automática en segundo plano.
+No llama a una API de IA ni requiere OpenAI Developers o una clave. La generación directa dentro del sitio no está habilitada. Usar ChatGPT consume los límites del plan de la persona; alojar una web en Sites no conecta automáticamente el plan a su backend.
 
-La revisión de tipos y la compilación pasaron. Las pruebas directas con SQLite verifican persistencia, aislamiento entre sesiones, autorización, origen, validación y respuestas simuladas de IA. La vista previa del entorno no respondió; la revisión visual y WebMCP en navegador están pendientes.
+El radar prepara una investigación para realizar en ChatGPT, conserva las fuentes y fechas importadas y advierte que deben revisarse. No verifica enlaces ni se actualiza automáticamente. Si ChatGPT no puede buscar, el encargo pide declarar esa limitación sin inventar fuentes. El panel de transferencia conserva su estado mientras la página permanezca abierta; no se debe recargar antes de importar.
+
+Las pruebas directas con SQLite verifican persistencia, aislamiento, autorización, origen, importación, reintentos sin duplicados, conservación de cambios y rechazo de fuentes inseguras. También comprueban que no se realiza ninguna solicitud externa de IA. La revisión visual y WebMCP en navegador siguen pendientes porque el control de navegador requerido por este entorno no está disponible.
 
 ## Desarrollo
 
@@ -24,13 +26,11 @@ node tests/studio.test.mjs
 
 `pnpm run db:generate` genera migraciones cuando cambia el esquema. `.openai/hosting.json` declara D1; Sites conecta la base y aplica las migraciones al publicar.
 
-## Activación de IA
+## Transferencia de contenido
 
-Configura `OPENAI_API_KEY` como secreto del servidor y opcionalmente `OPENAI_MODEL` (valor inicial: `gpt-4.1-mini`). No expongas la clave en el navegador ni en variables `NEXT_PUBLIC_*`. Esta aplicación necesita una conexión de API propia; la suscripción de ChatGPT no la configura automáticamente.
+`makeChatGPTPrompt` incluye perfil, brief, historial reciente y aprendizajes, y pide un bloque JSON de hasta 10 ideas. `parseImport` valida contenido y enlaces. La importación se guarda atómicamente con identificadores ligados a la sesión, el lote y la posición: reintentar el mismo lote no duplica ni sobrescribe ideas editadas. Preparar un nuevo encargo crea otro lote.
 
-La implementación utiliza Responses API, salida JSON y búsqueda web. Documentación oficial: https://developers.openai.com/api/docs/guides/tools-web-search
-
-Límites iniciales: 12 solicitudes de IA por sesión/día y 100 al día en total. Una generación con investigación puede hacer dos llamadas; los intentos fallidos cuentan para limitar abuso. Configura también los controles de consumo de la cuenta antes de abrir acceso amplio.
+El inicio de sesión y el uso de un plan de ChatGPT son integraciones distintas. Documentación oficial: https://developers.openai.com/siwc/quickstart. Esta versión no implementa autorización para usar un plan desde el sitio.
 
 ## Datos y acceso
 
@@ -38,6 +38,6 @@ Cada visitante recibe una cookie aleatoria HttpOnly y SameSite=Strict. D1 guarda
 
 ## Código y publicación
 
-La entrega GitHub utiliza una rama independiente de `Josebayonaf/web` y la carpeta `apps/estudio-contenido`. No modifica el sitio principal ni el diagnóstico. El backend necesita un servidor; GitHub Pages por sí solo no ejecuta la IA o D1. Sites aloja la versión de revisión; GitHub conserva una copia editable. No hay despliegue automático desde GitHub configurado.
+La entrega GitHub utiliza la rama `jumpers-estudio-contenido` de `Josebayonaf/web` y la carpeta `apps/estudio-contenido`. No modifica el sitio principal ni el diagnóstico. Sites aloja el estudio y conecta D1; GitHub conserva una copia editable. No hay despliegue automático desde GitHub configurado.
 
 WebMCP expone lectura del estudio y preparación del tema; no genera contenido ni consume API sin la acción correspondiente. La validación requiere un navegador compatible.

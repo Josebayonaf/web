@@ -17,13 +17,29 @@ assert.equal((await post(a.cookie,{action:'profile',profile})).status,200);asser
 const brief={format:'Guion',platform:'Instagram',goal:'Atraer',topic:'Postergación',trends:false};
 const draft=await post(a.cookie,{action:'draft',brief});assert.equal(draft.status,200);const idea=draft.body.ideas[0];idea.body='Borrador editado';idea.favorite=true;idea.published=true;idea.feedback='5 conversaciones';
 assert.equal((await post(a.cookie,{action:'save',idea})).status,200);assert.equal((await get(a.cookie)).body.ideas[0].feedback,'5 conversaciones');assert.equal((await get(b.cookie)).body.ideas.length,0);
-assert.equal((await post(b.cookie,{action:'save',idea})).status,404);assert.equal((await post(a.cookie,{action:'save',idea},'https://other.test')).status,403);assert.equal((await post('',{action:'profile',profile})).status,401);assert.equal((await post(a.cookie,{action:'profile',profile:{...profile,name:''}})).status,400);assert.equal((await post(a.cookie,{action:'generate',brief})).status,503);
-// External API is mocked only in this test; no tokens are spent.
-globalThis.__studioTestEnv.OPENAI_API_KEY='test-only';const realFetch=globalThis.fetch;let requestBody;
-globalThis.fetch=async(_url,opts)=>{requestBody=JSON.parse(opts.body);return Response.json({status:'completed',output:[{type:'message',content:[{type:'output_text',text:JSON.stringify({ideas:[{title:'Una idea nueva',hook:'Un gancho concreto',body:'Un desarrollo completo',cta:'Cuéntame tu experiencia',reason:'Conecta con el problema descrito'}]})}]}]});};
-const generated=await post(a.cookie,{action:'generate',brief});assert.equal(generated.status,200);assert.equal(generated.body.ideas[0].origin,'ai');assert.equal(requestBody.store,false);assert.equal(requestBody.text.format.type,'json_schema');
-globalThis.fetch=async()=>Response.json({status:'completed',output:[{type:'web_search_call',action:{sources:[{url:'https://example.org/source',title:'Source for test'}]}},{type:'message',content:[{type:'output_text',text:'A research result with source and date.'}]}]});
-const radar=await post(a.cookie,{action:'trends',brief});assert.equal(radar.status,200);assert.equal(radar.body.ideas[0].sources[0].url,'https://example.org/source');
-globalThis.fetch=async()=>Response.json({status:'completed',output:[{type:'message',content:[{type:'output_text',text:'No sources'}]}]});assert.equal((await post(a.cookie,{action:'trends',brief})).status,503);
-globalThis.fetch=realFetch;delete globalThis.__studioTestEnv.OPENAI_API_KEY;
-console.log('PASS: persistence, session isolation, ownership, CSRF, validation, pending-AI state and mocked provider parsing. No live API test performed.');
+assert.equal((await post(b.cookie,{action:'save',idea})).status,404);assert.equal((await post(a.cookie,{action:'save',idea},'https://other.test')).status,403);assert.equal((await post('',{action:'profile',profile})).status,401);assert.equal((await post(a.cookie,{action:'profile',profile:{...profile,name:''}})).status,400);
+// The handoff must work without any external AI request, even if an old key exists.
+const realFetch=globalThis.fetch;let externalCalls=0;
+globalThis.__studioTestEnv.OPENAI_API_KEY='unused-test-only';
+globalThis.fetch=async()=>{externalCalls++;throw new Error('Unexpected external request');};
+assert.equal((await get(a.cookie)).body.generationMode,'chatgpt-handoff');
+for(const action of ['generate','refine','trends'])assert.equal((await post(a.cookie,{action,brief})).status,409);
+const imported={format:'Guion',title:'Una idea nueva',hook:'Un gancho concreto',body:'Un desarrollo completo\ncon otro párrafo',cta:'Cuéntame tu experiencia',reason:'Conecta con el problema descrito',sources:[]};
+const radar={...imported,format:'Radar',title:'Investigación importada',sources:[{title:'Fuente de prueba',url:'https://example.org/source',publishedAt:'2026-10-01',checkedAt:'2026-10-05'}]};
+const batchId=crypto.randomUUID(), content='```json\n'+JSON.stringify({ideas:[imported,radar]})+'\n```';
+const input={action:'import',brief,batchId,content};
+const added=await post(a.cookie,input);assert.equal(added.status,200);assert.equal(added.body.ideas.length,2);assert.equal(added.body.ideas[0].origin,'chatgpt');assert.equal(added.body.ideas[1].sources[0].checkedAt,'2026-10-05');
+assert.equal((await get(a.cookie)).body.ideas.length,3);assert.equal((await get(b.cookie)).body.ideas.length,0);
+// Retrying an import does not duplicate or overwrite edited content.
+const edited={...added.body.ideas[0],body:'Versión editada después de importar'};
+assert.equal((await post(a.cookie,{action:'save',idea:edited})).status,200);
+const repeated=await post(a.cookie,input);assert.equal(repeated.body.ideas[0].body,edited.body);assert.equal((await get(a.cookie)).body.ideas.length,3);
+assert.equal((await post(b.cookie,input)).status,400);
+await post(b.cookie,{action:'profile',profile});
+const other=await post(b.cookie,input);assert.equal(other.status,200);assert.notEqual(other.body.ideas[0].id,added.body.ideas[0].id);
+for(const bad of ['not json',JSON.stringify({ideas:[]}),JSON.stringify({ideas:[imported,{...radar,sources:[{title:'Unsafe',url:'javascript:alert(1)'}]}]})]){
+  assert.equal((await post(a.cookie,{...input,batchId:crypto.randomUUID(),content:bad})).status,400);
+}
+assert.equal((await get(a.cookie)).body.ideas.length,3);
+assert.equal(externalCalls,0);globalThis.fetch=realFetch;delete globalThis.__studioTestEnv.OPENAI_API_KEY;
+console.log('PASS: quiz, persistence, session isolation, edits, import, retry safety, source validation and zero external AI requests.');
